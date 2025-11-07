@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # OAuth2 Server with SQLite (default)
+  oauth2-server-sqlite:
+    build: .
+    container_name: oauth2-server-sqlite
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_TYPE=sqlite
+      - DATABASE_URL=./oauth2.db
+      - SERVER_PORT=8080
+      - JWT_SECRET=your-secret-key-change-this-in-production
+      - ACCESS_TOKEN_LIFETIME=3600
+      - REFRESH_TOKEN_LIFETIME=2592000
+      - AUTH_CODE_LIFETIME=600
+    volumes:
+      - ./data:/root
+    restart: unless-stopped
+    networks:
+      - oauth2-network
+
+  # PostgreSQL Database (optional)
+  postgres:
+    image: postgres:15-alpine
+    container_name: oauth2-postgres
+    environment:
+      - POSTGRES_USER=oauth2
+      - POSTGRES_PASSWORD=oauth2password
+      - POSTGRES_DB=oauth2db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - oauth2-network
+    profiles:
+      - postgres
+
+  # OAuth2 Server with PostgreSQL
+  oauth2-server-postgres:
+    build: .
+    container_name: oauth2-server-postgres
+    ports:
+      - "8081:8080"
+    environment:
+      - DATABASE_TYPE=postgres
+      - DATABASE_URL=postgres://oauth2:oauth2password@postgres:5432/oauth2db?sslmode=disable
+      - SERVER_PORT=8080
+      - JWT_SECRET=your-secret-key-change-this-in-production
+      - ACCESS_TOKEN_LIFETIME=3600
+      - REFRESH_TOKEN_LIFETIME=2592000
+      - AUTH_CODE_LIFETIME=600
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - oauth2-network
+    profiles:
+      - postgres
+
+networks:
+  oauth2-network:
+    driver: bridge
+
+volumes:
+  postgres-data:

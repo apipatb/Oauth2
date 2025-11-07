@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth2 Admin Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #2d3748;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            color: #718096;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab:hover {
+            color: #4299e1;
+        }
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .card h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #2d3748;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #718096;
+            font-size: 12px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: #48bb78;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #38a169;
+        }
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        /* Response */
+        .response {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            overflow-x: auto;
+            display: none;
+        }
+        .response.show {
+            display: block;
+        }
+        .response pre {
+            margin: 0;
+        }
+
+        /* Success/Error Messages */
+        .message {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .message.show {
+            display: block;
+        }
+        .message.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border-left: 4px solid #48bb78;
+        }
+        .message.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border-left: 4px solid #f56565;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        .stat-card h3 {
+            font-size: 32px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .stat-card p {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        /* List */
+        .redirect-list {
+            list-style: none;
+            margin-top: 10px;
+        }
+        .redirect-list li {
+            background: #edf2f7;
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .redirect-list button {
+            float: right;
+            padding: 2px 8px;
+            font-size: 12px;
+        }
+
+        /* Code block */
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+
+        .warning {
+            background: #fef5e7;
+            border-left: 4px solid #f39c12;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #7d6608;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎛️ OAuth2 Admin Dashboard</h1>
+        <p>Manage OAuth2 clients, users, and system configuration</p>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('users')">👥 Users</button>
+            <button class="tab" onclick="showTab('clients')">🔑 Clients</button>
+            <button class="tab" onclick="showTab('tokens')">🎫 Tokens</button>
+            <button class="tab" onclick="showTab('system')">⚙️ System</button>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="users" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>1</h3>
+                    <p>Total Users</p>
+                </div>
+                <div class="stat-card">
+                    <h3>0</h3>
+                    <p>Active Sessions</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Create New User</h2>
+                <div id="userMessage" class="message"></div>
+                <form onsubmit="createUser(event)">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="username" required>
+                        <small>Unique username for the user</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="email" required>
+                        <small>User's email address</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="password" required>
+                        <small>Strong password (will be hashed)</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create User</button>
+                </form>
+                <div id="userResponse" class="response"></div>
+            </div>
+        </div>
+
+        <!-- Clients Tab -->
+        <div id="clients" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>1</h3>
+                    <p>Total Clients</p>
+                </div>
+                <div class="stat-card">
+                    <h3>0</h3>
+                    <p>Active Tokens</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Create OAuth2 Client</h2>
+                <div id="clientMessage" class="message"></div>
+                <form onsubmit="createClient(event)">
+                    <div class="form-group">
+                        <label>Client Name</label>
+                        <input type="text" id="clientName" required>
+                        <small>Display name for the OAuth2 client</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Redirect URIs</label>
+                        <textarea id="redirectUris" required>http://localhost:8080/callback</textarea>
+                        <small>One URI per line. These are the allowed callback URLs.</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Client</button>
+                </form>
+                <div id="clientResponse" class="response"></div>
+                <div class="warning">
+                    ⚠️ <strong>Important:</strong> Save the client secret immediately! It will only be shown once and cannot be retrieved later.
+                </div>
+            </div>
+        </div>
+
+        <!-- Tokens Tab -->
+        <div id="tokens" class="tab-content">
+            <div class="card">
+                <h2>Revoke Token</h2>
+                <div id="revokeMessage" class="message"></div>
+                <form onsubmit="revokeToken(event)">
+                    <div class="form-group">
+                        <label>Token</label>
+                        <textarea id="revokeTokenValue" required placeholder="Paste the JWT token here..."></textarea>
+                        <small>The access or refresh token to revoke</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Token Type</label>
+                        <select id="tokenTypeHint" style="width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px;">
+                            <option value="">Auto-detect</option>
+                            <option value="access_token">Access Token</option>
+                            <option value="refresh_token">Refresh Token</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Client ID</label>
+                        <input type="text" id="revokeClientId" value="demo-client-id" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Client Secret</label>
+                        <input type="password" id="revokeClientSecret" value="demo-client-secret" required>
+                    </div>
+                    <button type="submit" class="btn btn-danger">Revoke Token</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>Decode JWT Token</h2>
+                <div class="form-group">
+                    <label>JWT Token</label>
+                    <textarea id="decodeTokenValue" placeholder="Paste JWT token here..."></textarea>
+                </div>
+                <button onclick="decodeToken()" class="btn btn-secondary">Decode</button>
+                <div id="decodeResponse" class="response"></div>
+            </div>
+        </div>
+
+        <!-- System Tab -->
+        <div id="system" class="tab-content">
+            <div class="card">
+                <h2>System Information</h2>
+                <div class="code-block">
+                    <strong>🚀 OAuth2 Authorization Server v2.0</strong><br><br>
+                    <strong>Features:</strong><br>
+                    ✓ JWT-based tokens<br>
+                    ✓ Database storage (SQLite/PostgreSQL)<br>
+                    ✓ PKCE support<br>
+                    ✓ Token revocation<br>
+                    ✓ Rate limiting<br>
+                    ✓ Password hashing (bcrypt)<br>
+                    ✓ Client credentials grant<br>
+                    ✓ Authorization code grant<br>
+                    ✓ Refresh token grant<br>
+                    <br>
+                    <strong>Endpoints:</strong><br>
+                    /oauth/authorize - Authorization endpoint<br>
+                    /oauth/token - Token endpoint<br>
+                    /oauth/revoke - Token revocation<br>
+                    /api/userinfo - Protected user info<br>
+                    /api/data - Protected data<br>
+                    /api/public - Public endpoint<br>
+                    /admin/user/register - User registration<br>
+                    /admin/client/create - Client creation<br>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Demo Credentials</h2>
+                <div class="code-block">
+                    <strong>Demo Client:</strong><br>
+                    Client ID: demo-client-id<br>
+                    Client Secret: demo-client-secret<br>
+                    <br>
+                    <strong>Demo User:</strong><br>
+                    Username: demo<br>
+                    Password: password<br>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Quick Start</h2>
+                <p style="margin-bottom: 15px;">Test the OAuth2 flow:</p>
+                <button onclick="window.location.href='/'" class="btn btn-primary">
+                    Open Test Client
+                </button>
+                <button onclick="window.location.href='/oauth/authorize?response_type=code&client_id=demo-client-id&redirect_uri=http://localhost:8080/callback&scope=read%20write&state=test'" class="btn btn-secondary">
+                    Start OAuth2 Flow
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        async function createUser(e) {
+            e.preventDefault();
+
+            const data = {
+                username: document.getElementById('username').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value
+            };
+
+            try {
+                const response = await fetch('/admin/user/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showMessage('userMessage', 'User created successfully!', 'success');
+                    document.getElementById('userResponse').textContent = JSON.stringify(result, null, 2);
+                    document.getElementById('userResponse').classList.add('show');
+                    e.target.reset();
+                } else {
+                    showMessage('userMessage', result.error || 'Failed to create user', 'error');
+                }
+            } catch (error) {
+                showMessage('userMessage', 'Request failed: ' + error.message, 'error');
+            }
+        }
+
+        async function createClient(e) {
+            e.preventDefault();
+
+            const redirectUris = document.getElementById('redirectUris').value
+                .split('\n')
+                .map(uri => uri.trim())
+                .filter(uri => uri.length > 0);
+
+            const data = {
+                name: document.getElementById('clientName').value,
+                redirect_uris: redirectUris
+            };
+
+            try {
+                const response = await fetch('/admin/client/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showMessage('clientMessage', 'Client created successfully! Save the secret now!', 'success');
+                    document.getElementById('clientResponse').textContent = JSON.stringify(result, null, 2);
+                    document.getElementById('clientResponse').classList.add('show');
+                    e.target.reset();
+                } else {
+                    showMessage('clientMessage', result.error || 'Failed to create client', 'error');
+                }
+            } catch (error) {
+                showMessage('clientMessage', 'Request failed: ' + error.message, 'error');
+            }
+        }
+
+        async function revokeToken(e) {
+            e.preventDefault();
+
+            const params = new URLSearchParams({
+                token: document.getElementById('revokeTokenValue').value,
+                token_type_hint: document.getElementById('tokenTypeHint').value,
+                client_id: document.getElementById('revokeClientId').value,
+                client_secret: document.getElementById('revokeClientSecret').value
+            });
+
+            try {
+                const response = await fetch('/oauth/revoke', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params
+                });
+
+                if (response.ok) {
+                    showMessage('revokeMessage', 'Token revoked successfully!', 'success');
+                } else {
+                    showMessage('revokeMessage', 'Failed to revoke token', 'error');
+                }
+            } catch (error) {
+                showMessage('revokeMessage', 'Request failed: ' + error.message, 'error');
+            }
+        }
+
+        function decodeToken() {
+            const token = document.getElementById('decodeTokenValue').value.trim();
+
+            if (!token) {
+                alert('Please enter a token');
+                return;
+            }
+
+            try {
+                const parts = token.split('.');
+                if (parts.length !== 3) {
+                    throw new Error('Invalid JWT format');
+                }
+
+                const header = JSON.parse(atob(parts[0]));
+                const payload = JSON.parse(atob(parts[1]));
+
+                const decoded = {
+                    header: header,
+                    payload: payload,
+                    signature: parts[2]
+                };
+
+                document.getElementById('decodeResponse').textContent = JSON.stringify(decoded, null, 2);
+                document.getElementById('decodeResponse').classList.add('show');
+            } catch (error) {
+                alert('Failed to decode token: ' + error.message);
+            }
+        }
+
+        function showMessage(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = 'message show ' + type;
+            setTimeout(() => {
+                el.classList.remove('show');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

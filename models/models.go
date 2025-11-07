@@ -12,12 +12,14 @@ type Client struct {
 
 // AuthorizationCode represents a temporary authorization code
 type AuthorizationCode struct {
-	Code        string
-	ClientID    string
-	UserID      string
-	RedirectURI string
-	ExpiresAt   time.Time
-	Scope       string
+	Code                string
+	ClientID            string
+	UserID              string
+	RedirectURI         string
+	ExpiresAt           time.Time
+	Scope               string
+	CodeChallenge       string // PKCE code challenge
+	CodeChallengeMethod string // PKCE code challenge method (plain or S256)
 }
 
 // AccessToken represents an OAuth2 access token
