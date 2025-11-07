@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth2 Test Client</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: #4a5568;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { margin-bottom: 10px; }
+        .header p { opacity: 0.9; }
+        .content { padding: 30px; }
+        .section {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .info-box {
+            background: #edf2f7;
+            border-left: 4px solid #4299e1;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .info-box strong { color: #2c5282; }
+        button {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.3s;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        button:hover { background: #3182ce; }
+        button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+        .success { background: #48bb78 !important; }
+        .success:hover { background: #38a169 !important; }
+        .warning {
+            background: #ed8936;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 15px 0;
+            color: white;
+        }
+        pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 10px 0;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .token-display {
+            word-break: break-all;
+            background: #fff;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .status.ready { background: #c6f6d5; color: #22543d; }
+        .status.active { background: #bee3f8; color: #2c5282; }
+        .steps {
+            counter-reset: step-counter;
+            list-style: none;
+        }
+        .steps li {
+            counter-increment: step-counter;
+            position: relative;
+            padding-left: 40px;
+            margin-bottom: 15px;
+        }
+        .steps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #4299e1;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 OAuth2 Test Client</h1>
+            <p>Test OAuth2 Authorization Code Flow</p>
+        </div>
+
+        <div class="content">
+            <!-- Configuration Section -->
+            <div class="section">
+                <h2>📋 Configuration</h2>
+                <div class="info-box">
+                    <strong>Client ID:</strong> demo-client-id<br>
+                    <strong>Client Secret:</strong> demo-client-secret<br>
+                    <strong>Redirect URI:</strong> http://localhost:8080/callback<br>
+                    <strong>Demo User:</strong> username: <code>demo</code> | password: <code>password</code>
+                </div>
+            </div>
+
+            <!-- Step 1: Authorization -->
+            <div class="section">
+                <h2>Step 1: Start Authorization <span class="status ready">Ready</span></h2>
+                <p>Click the button below to start the OAuth2 authorization flow.</p>
+                <button onclick="startAuthorization()">Start OAuth2 Flow</button>
+            </div>
+
+            <!-- Step 2: Token Exchange -->
+            <div class="section">
+                <h2>Step 2: Exchange Code for Token <span id="tokenStatus" class="status ready">Waiting</span></h2>
+                <div id="authCodeSection" style="display: none;">
+                    <p>Authorization code received! Click to exchange for access token.</p>
+                    <div class="token-display" id="authCodeDisplay"></div>
+                    <button onclick="exchangeToken()" class="success">Exchange for Access Token</button>
+                </div>
+                <div id="tokenSection" style="display: none;">
+                    <p><strong>✅ Access Token:</strong></p>
+                    <div class="token-display" id="accessTokenDisplay"></div>
+                    <p><strong>Refresh Token:</strong></p>
+                    <div class="token-display" id="refreshTokenDisplay"></div>
+                </div>
+            </div>
+
+            <!-- Step 3: Call Protected API -->
+            <div class="section">
+                <h2>Step 3: Access Protected Resources <span id="apiStatus" class="status ready">Waiting</span></h2>
+                <button onclick="callUserInfo()" id="userInfoBtn" disabled>Get User Info</button>
+                <button onclick="callProtectedData()" id="dataBtn" disabled>Get Protected Data</button>
+                <button onclick="callPublicEndpoint()" id="publicBtn">Call Public Endpoint</button>
+                <div id="apiResponse" style="display: none; margin-top: 15px;">
+                    <strong>API Response:</strong>
+                    <pre id="apiResponseContent"></pre>
+                </div>
+            </div>
+
+            <!-- Step 4: Refresh Token -->
+            <div class="section">
+                <h2>Step 4: Refresh Access Token <span id="refreshStatus" class="status ready">Optional</span></h2>
+                <p>Use refresh token to get a new access token.</p>
+                <button onclick="refreshAccessToken()" id="refreshBtn" disabled>Refresh Token</button>
+            </div>
+
+            <!-- OAuth2 Flow Guide -->
+            <div class="section">
+                <h2>📖 OAuth2 Authorization Code Flow</h2>
+                <ol class="steps">
+                    <li>Client requests authorization from user</li>
+                    <li>User authenticates and grants permission</li>
+                    <li>Authorization server returns authorization code</li>
+                    <li>Client exchanges code for access token</li>
+                    <li>Client uses access token to access protected resources</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let authCode = '';
+        let accessToken = '';
+        let refreshToken = '';
+
+        // Parse URL parameters on page load
+        window.onload = function() {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            const state = params.get('state');
+
+            if (code) {
+                authCode = code;
+                document.getElementById('authCodeSection').style.display = 'block';
+                document.getElementById('authCodeDisplay').textContent = code;
+                document.getElementById('tokenStatus').textContent = 'Code Received';
+                document.getElementById('tokenStatus').className = 'status active';
+            }
+        };
+
+        function startAuthorization() {
+            const clientId = 'demo-client-id';
+            const redirectUri = 'http://localhost:8080/callback';
+            const scope = 'read write';
+            const state = generateRandomState();
+
+            const authUrl = `/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&state=${state}`;
+
+            window.location.href = authUrl;
+        }
+
+        async function exchangeToken() {
+            const params = new URLSearchParams({
+                grant_type: 'authorization_code',
+                code: authCode,
+                client_id: 'demo-client-id',
+                client_secret: 'demo-client-secret',
+                redirect_uri: 'http://localhost:8080/callback'
+            });
+
+            try {
+                const response = await fetch('/oauth/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    accessToken = data.access_token;
+                    refreshToken = data.refresh_token;
+
+                    document.getElementById('tokenSection').style.display = 'block';
+                    document.getElementById('accessTokenDisplay').textContent = accessToken;
+                    document.getElementById('refreshTokenDisplay').textContent = refreshToken;
+                    document.getElementById('tokenStatus').textContent = 'Token Received';
+                    document.getElementById('tokenStatus').className = 'status active';
+
+                    // Enable API buttons
+                    document.getElementById('userInfoBtn').disabled = false;
+                    document.getElementById('dataBtn').disabled = false;
+                    document.getElementById('refreshBtn').disabled = false;
+                } else {
+                    alert('Error: ' + data.error_description);
+                }
+            } catch (error) {
+                alert('Request failed: ' + error.message);
+            }
+        }
+
+        async function callUserInfo() {
+            await callAPI('/api/userinfo');
+        }
+
+        async function callProtectedData() {
+            await callAPI('/api/data');
+        }
+
+        async function callPublicEndpoint() {
+            await callAPI('/api/public');
+        }
+
+        async function callAPI(endpoint) {
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+
+                if (accessToken && endpoint !== '/api/public') {
+                    headers['Authorization'] = `Bearer ${accessToken}`;
+                }
+
+                const response = await fetch(endpoint, {
+                    method: 'GET',
+                    headers: headers
+                });
+
+                const data = await response.json();
+
+                document.getElementById('apiResponse').style.display = 'block';
+                document.getElementById('apiResponseContent').textContent = JSON.stringify(data, null, 2);
+                document.getElementById('apiStatus').textContent = response.ok ? 'Success' : 'Failed';
+                document.getElementById('apiStatus').className = response.ok ? 'status active' : 'status ready';
+            } catch (error) {
+                document.getElementById('apiResponse').style.display = 'block';
+                document.getElementById('apiResponseContent').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function refreshAccessToken() {
+            const params = new URLSearchParams({
+                grant_type: 'refresh_token',
+                refresh_token: refreshToken,
+                client_id: 'demo-client-id',
+                client_secret: 'demo-client-secret'
+            });
+
+            try {
+                const response = await fetch('/oauth/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    accessToken = data.access_token;
+                    refreshToken = data.refresh_token;
+
+                    document.getElementById('accessTokenDisplay').textContent = accessToken;
+                    document.getElementById('refreshTokenDisplay').textContent = refreshToken;
+                    document.getElementById('refreshStatus').textContent = 'Refreshed';
+                    document.getElementById('refreshStatus').className = 'status active';
+                    alert('Token refreshed successfully!');
+                } else {
+                    alert('Error: ' + data.error_description);
+                }
+            } catch (error) {
+                alert('Request failed: ' + error.message);
+            }
+        }
+
+        function generateRandomState() {
+            return Math.random().toString(36).substring(2, 15);
+        }
+    </script>
+</body>
+</html>
