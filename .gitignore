@@ -33,4 +33,6 @@ Thumbs.db
 
 # Application
 oauth2-system
+oauth2-server
 *.log
+*.db
